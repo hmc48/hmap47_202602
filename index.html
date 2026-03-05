@@ -129,6 +129,9 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
     <div id="search-results" style="max-height:200px; overflow-y:auto; margin-top:10px;"></div>
   </div>
   <div id="info-btn" class="circle-btn" onclick="togglePanel('info-panel')">i</div>
+  <div id="jump-btn" class="circle-btn"
+       style="top:195px; right:15px; background:#ff9800; color:white;"
+       onclick="jumpToLocation()">📍</div>
   <div id="info-panel" onclick="this.style.display='none'">
     <strong>医療・介護施設マップ　　　　★閉じる★</strong><br>
     <span style="color:red;">★</span>病院
@@ -253,6 +256,71 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
     };
 
     const layerGroups = {};
+
+// =====================================================
+// 📍 住所／緯度経度ジャンプ機能（既存構造完全維持型）
+// =====================================================
+    let inputMarker = null;
+
+    function jumpToLocation() {
+
+        const input = prompt(
+            "住所 施設または 緯度,経度 を入力してください\n例:\n品川区 〇〇区役所\n35.6094, 139.7303"
+        );
+
+        if (!input) return;
+
+        // 既存マーカー削除
+        if (inputMarker) {
+            map.removeLayer(inputMarker);
+            inputMarker = null;
+        }
+
+        // 緯度経度形式
+        if (input.includes(",")) {
+
+            const parts = input.split(",");
+            const lat = parseFloat(parts[0]);
+            const lng = parseFloat(parts[1]);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                alert("緯度経度の形式が正しくありません");
+                return;
+            }
+
+            map.setView([lat, lng], 16);
+
+            inputMarker = L.marker([lat, lng]).addTo(map)
+                .bindPopup(input)
+                .openPopup();
+
+        } else {
+
+            fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`
+            )
+            .then(res => res.json())
+            .then(data => {
+
+                if (!data || data.length === 0) {
+                    alert("住所が見つかりません");
+                    return;
+                }
+
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+
+                map.setView([lat, lng], 16);
+
+                inputMarker = L.marker([lat, lng]).addTo(map)
+                    .bindPopup(input)
+                    .openPopup();
+            })
+            .catch(() => {
+                alert("検索エラーが発生しました");
+            });
+        }
+    }    
 
     // 4. データ読み込み関数群
     function loadChome(idx) {
