@@ -1,0 +1,608 @@
+import os
+import geopandas as gpd
+import pandas as pd
+import json
+
+# ==========================================================
+# 1. 基本設定とデータ処理（Python）
+# ==========================================================
+base_dir = "." 
+
+# 医療圏データの設定
+area_data = {
+    "01": ["47_北部医療圏"],
+    "02": ["47_中部医療圏"],
+    "03": ["47_南部医療圏"],
+    "04": ["47_宮古医療圏"],
+    "05": ["47_八重山医療圏"],
+}
+
+def process_geojson(area_no, names):
+    """町丁目境界データの結合と保存"""
+    gdfs = []
+    for n in names:
+        path = os.path.join(base_dir, f"{n}.geojson")
+        if os.path.exists(path):
+            gdfs.append(gpd.read_file(path))
+    if not gdfs: return
+    gdf = pd.concat(gdfs, ignore_index=True)
+    gdf = gpd.GeoDataFrame(gdf, geometry="geometry", crs=gdfs[0].crs)
+    gdf["町丁目名"] = gdf["CITY_NAME"].fillna("") + gdf["S_NAME"].fillna("")
+    out = f"geo_0_町丁目境界{area_no}.geojson"
+    gdf.to_file(out, driver="GeoJSON", encoding="utf-8")
+
+# 町丁目データの生成実行
+for k, v in area_data.items():
+    process_geojson(k, v)
+
+# 施設リストの定義
+geojson_files = [
+    ("geo_47_1.geojson", "赤", "病院"),
+    ("geo_47_2.geojson", "青", "診療所"),
+    ("geo_47_3.geojson", "黄", "歯科"),
+    ("geo_47_4.geojson", "赤", "助産院"),
+    ("geo_47_5.geojson", "緑", "薬局"),
+    ("geo_47_訪問介護.geojson","茶","訪問介護"),
+    ("geo_47_訪問入浴介護.geojson","茶","訪問入浴介護"),
+    ("geo_47_訪問看護.geojson","茶","訪問看護"),
+    ("geo_47_訪問リハビリテーション.geojson","茶","訪問リハビリテーション"),
+    ("geo_47_通所介護.geojson","茶","通所介護"),
+    ("geo_47_通所介護（療養通所介護）.geojson","茶","通所介護（療養通所介護）"),
+    ("geo_47_通所リハビリテーション.geojson","茶","通所リハビリテーション"),
+    ("geo_47_福祉用具貸与.geojson","茶","福祉用具貸与"),
+    ("geo_47_短期入所生活介護.geojson","茶","短期入所生活介護"),
+    ("geo_47_短期入所療養介護（介護老人保健施設）.geojson","茶","短期入所療養介護（介護老人保健施設）"),
+    ("geo_47_短期入所療養介護（療養病床を有する病院等）.geojson","茶","短期入所療養介護（療養病床を有する病院等）"),
+    ("geo_47_短期入所療養介護（介護医療院）.geojson","茶","短期入所療養介護（介護医療院）"),
+    ("geo_47_認知症対応型共同生活介護.geojson","茶","認知症対応型共同生活介護"),
+    ("geo_47_特定施設入居者生活介護（有料老人ホーム）.geojson","茶","特定施設入居者生活介護（有料老人ホーム）"),
+    ("geo_47_特定施設入居者生活介護（軽費老人ホーム）.geojson","茶","特定施設入居者生活介護（軽費老人ホーム）"),
+    ("geo_47_特定施設入居者生活介護（サービス付き高齢者向け住宅）.geojson","茶","特定施設入居者生活介護（サービス付き高齢者向け住宅）"),
+    ("geo_47_特定施設入居者生活介護（有料老人ホーム・外部サービス利用型）.geojson","茶","特定施設入居者生活介護（有料老人ホーム・外部サービス利用型）"),
+    ("geo_47_特定施設入居者生活介護（軽費老人ホーム・外部サービス利用型）.geojson","茶","特定施設入居者生活介護（軽費老人ホーム・外部サービス利用型）"),
+    ("geo_47_特定施設入居者生活介護（サービス付き高齢者向け住宅・外部サービス利用型）.geojson","茶","特定施設入居者生活介護（サービス付き高齢者向け住宅・外部サービス利用型）"),
+    ("geo_47_地域密着型特定施設入居者生活介護（有料老人ホーム）.geojson","茶","地域密着型特定施設入居者生活介護（有料老人ホーム）"),
+    ("geo_47_地域密着型特定施設入居者生活介護（軽費老人ホーム）.geojson","茶","地域密着型特定施設入居者生活介護（軽費老人ホーム）"),
+    ("geo_47_地域密着型特定施設入居者生活介護（サービス付き高齢者向け住宅）.geojson","茶","地域密着型特定施設入居者生活介護（サービス付き高齢者向け住宅）"),
+    ("geo_47_特定福祉用具販売.geojson","茶","特定福祉用具販売"),
+    ("geo_47_居宅介護支援.geojson","茶","居宅介護支援"),
+    ("geo_47_介護老人福祉施設.geojson","茶","介護老人福祉施設"),
+    ("geo_47_介護老人保健施設.geojson","茶","介護老人保健施設"),
+    ("geo_47_介護療養型医療施設.geojson","茶","介護療養型医療施設"),
+    ("geo_47_地域密着型介護老人福祉施設入所者生活介護.geojson","茶","地域密着型介護老人福祉施設入所者生活介護"),
+    ("geo_47_介護医療院.geojson","茶","介護医療院"),
+    ("geo_47_夜間対応型訪問介護.geojson","茶","夜間対応型訪問介護"),
+    ("geo_47_認知症対応型通所介護.geojson","茶","認知症対応型通所介護"),
+    ("geo_47_小規模多機能型居宅介護.geojson","茶","小規模多機能型居宅介護"),
+    ("geo_47_定期巡回・随時対応型訪問介護看護.geojson","茶","定期巡回・随時対応型訪問介護看護"),
+    ("geo_47_看護小規模多機能型居宅介護.geojson","茶","看護小規模多機能型居宅介護"),
+    ("geo_47_地域密着型通所介護.geojson","茶","地域密着型通所介護"),
+]
+
+color_dict = {"赤":"red","青":"blue","オレンジ":"orange","緑":"green","茶":"brown","黄":"yellow"}
+icon_shape_dict = {"病院": "star", "診療所": "heart", "歯科": "club", "助産院": "square", "薬局": "spade"}
+
+# ==========================================================
+# 2. HTML/JavaScript 生成
+# ==========================================================
+ga4_tag = """
+<!-- GA4の計測タグ -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-R23Q109BZT"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-R23Q109BZT');
+</script>
+"""
+html_head = f"""<!DOCTYPE html>
+<html lang="ja">
+<head>
+{ga4_tag}
+<meta charset="utf-8">
+<title>医療・介護施設マップ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+body {{ margin:0; padding:0; overflow:hidden; font-family: sans-serif; }}
+#map {{ height:100vh; width:100vw; z-index:1; }}
+#map-title-bar {{
+  position: fixed; top: 10px; left: 10px; z-index: 4000;
+  background: #ffe4e1; padding: 5px 12px; border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3); color: black;
+  display: flex; align-items: baseline; white-space: nowrap; pointer-events: none;
+}}
+#main-title {{ font-size: 9pt; font-weight: bold; margin-right: 10px; }}
+#credit-title {{ font-size: 7pt; font-weight: bold; margin-right: 10px; }}
+#zoom-indicator {{
+  position: fixed; bottom: 10px; right: 10px; z-index: 4000;
+  background: rgba(255, 255, 255, 0.8); padding: 5px 10px;
+  border: 1px solid #ccc; border-radius: 4px; font-weight: bold; font-size: 14px; pointer-events: none;
+}}
+.circle-btn {{
+  width:48px; height:48px; border-radius:50%; text-align:center; line-height:48px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.3); cursor:pointer; font-size:24px; z-index:2000;
+  position:fixed; background:white;
+}}
+#control-btn {{ top:15px; right:15px; background:#007bff; color:white; }}
+#search-btn {{ top:75px; right:15px; background:#28a745; color:white; }}
+#info-btn {{ top:135px; right:15px; background:#ff69b4; color:white; }}
+#controls, #search-panel, #info-panel {{
+  display:none; position:fixed; right:15px; width:220px; 
+  background:white; padding:15px; border-radius:8px; z-index:2000;
+  max-height:75vh; overflow-y:auto; box-shadow:0 4px 15px rgba(0,0,0,0.2);
+}}
+#controls {{ top:70px; }}
+#search-panel {{ top:130px; }}
+#info-panel {{ bottom:20px; left:20px; right:20px; width:auto; font-size:14px; z-index:3000; }}
+.close-x {{ float: right; font-size: 30px; font-weight: bold; cursor: pointer; color: #888; }}
+.section-title {{ font-weight:bold; margin-top:10px; border-bottom:1px solid #eee; }}
+.layer-item {{ margin-bottom: 8px; font-size: 14px; display: flex; align-items: center; }}
+input[type="checkbox"], input[type="radio"] {{ margin-right: 10px; transform: scale(1.2); }}
+button.menu-sub-btn {{ margin: 5px 1%; padding: 8px; width: 46%; font-size: 11px; }}
+/* --- ここを修正：ボタンを横並びにする設定 --- */
+.btn-container {{ display: flex; gap: 5px; margin-bottom: 5px; }}
+button.menu-sub-btn {{ flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }}
+/* -------------------------------------- */
+.search-item:hover {{ background:#f0f0f0; cursor:pointer; }}
+</style>
+</head>
+<body>
+  <div id="map-title-bar"><span id="main-title">沖縄県版</span> <span id="credit-title">© OpenStreetMap</span></div>
+  <div id="zoom-indicator">Zoom: --</div>
+
+  <div id="control-btn" class="circle-btn" onclick="togglePanel('controls')">🛠️</div>
+  <div id="controls">
+    <span class="close-x" onclick="togglePanel('controls')">×</span>
+    <div class="section-title">一括操作</div>
+    <div class="btn-container">
+      <button class="menu-sub-btn" id="selectAllBtn">全て選択</button>
+      <button class="menu-sub-btn" id="deselectAllBtn">全て解除</button>
+    </div>
+    <div class="section-title">地図の種類</div>
+    <label class="layer-item"><input type="radio" name="baseLayer" value="標準" checked> オープンストリートマップ</label>
+    <label class="layer-item"><input type="radio" name="baseLayer" value="航空写真"> 航空写真(国土地理院)</label>
+    <label class="layer-item"><input type="radio" name="baseLayer" value="国土地理院地図"> 国土地理院地図</label>
+    <div class="section-title">境界線・施設種類</div>
+"""
+
+# HTMLの動的チェックボックス生成
+html_checkboxes = ""
+for k in sorted(area_data.keys()):
+    area_name = area_data[k][0].split('_')[1]
+    html_checkboxes += f'    <label class="layer-item"><input type="checkbox" class="layer-toggle" value="町丁目境界{k}"> {area_name}</label>\n'
+
+for _, _, label in geojson_files:
+    html_checkboxes += f'    <label class="layer-item"><input type="checkbox" class="layer-toggle" value="{label}"> {label}</label>\n'
+
+html_body = """
+  </div>
+  <div id="search-btn" class="circle-btn" onclick="togglePanel('search-panel')">🔍</div>
+  <div id="search-panel">
+    <input type="text" id="search-input" placeholder="and検索（例：内科 五反田）" style="width:100%; padding:10px; box-sizing:border-box;">
+    <div id="search-results" style="max-height:200px; overflow-y:auto; margin-top:10px;"></div>
+  </div>
+  <div id="info-btn" class="circle-btn" onclick="togglePanel('info-panel')">i</div>
+  <div id="jump-btn" class="circle-btn"
+       style="top:195px; right:15px; background:#ff9800; color:white;"
+       onclick="jumpToLocation()">📍</div>
+  <div id="info-panel" onclick="this.style.display='none'">
+    <strong>医療・介護施設マップ　　　　★閉じる★</strong><br>
+    <span style="color:red;">★</span>病院
+    <span style="color:blue;">&hearts;</span>診療所
+    <span style="color:yellow;">♣</span>歯科
+    <span style="color:green;">♠</span>薬局
+    <span style="color:red;">■</span>助産院
+    <span style="color:brown;">●</span>介護<br>
+    【出典】<br>
+    医療情報ネットのオープンデータ（厚生労働省）<br>
+    (2025年12月1日時点) <br>
+    <a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/kenkou_iryou/iryou/newpage_43373.html" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">厚生労働省の医療ページ</a>
+    &nbsp;&nbsp;&nbsp;
+    <a href="https://www.digital.go.jp/resources/open_data/public_data_license_v1.0" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">同利用規約</a><br>
+    介護サービス情報のオープンデータ（厚生労働省）<br>
+    (2025年12月末時点)<br>
+    <a href="https://www.mhlw.go.jp/stf/kaigo-kouhyou_opendata.html" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">厚生労働省の介護ページ</a>
+    &nbsp;&nbsp;&nbsp;
+    <a href="https://www.mhlw.go.jp/chosakuken/index.html" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">同利用規約</a><br>
+    e-Stat国勢調査2020年<br>
+    【機能】<br>
+    地図種類変更、医療圏境界線表示<br>
+    施設選択（各ページへリンク）<br>
+    検索機能(and検索)<br>
+    and検索の例:内科 秋葉原　診療所<br>
+    人口表示（境界線表示時）<br>
+    【利用規約・ご意見・ご感想・お問い合わせ】<br>
+    他都道府県は下記サイトへ<br>
+    本ツールは以下のサイトで作成しています。<br>
+    <a href="https://sites.google.com/view/indexm" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">https://sites.google.com/view/indexm</a><br>
+    作成者:Mana48FanClub<br>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const colorMap = """ + json.dumps(color_dict, ensure_ascii=False) + """;
+    const shapeMap = """ + json.dumps(icon_shape_dict, ensure_ascii=False) + """;
+
+    // 1. レンダラーの初期化（Canvasを使用）
+    const myRenderer = L.canvas({ padding: 0.5 });
+
+    // 2. カスタムマーカー定義（Canvas直接描画で高速化）
+    L.CustomMarker = L.CircleMarker.extend({
+        _updatePath: function () {
+            const ctx = this._renderer._ctx;
+            const p = this._point;
+            const r = this._radius;
+            const s = this.options.shape;
+            if (!this._renderer._drawing || this._empty()) return;
+
+            ctx.fillStyle = this.options.fillColor;
+            ctx.strokeStyle = this.options.color;
+            ctx.lineWidth = this.options.weight;
+            ctx.beginPath();
+
+            if (s === 'star') {
+                for(let i=0; i<5; i++) {
+                    ctx.lineTo(p.x + r * Math.cos((18+i*72)/180*Math.PI), p.y - r * Math.sin((18+i*72)/180*Math.PI));
+                    ctx.lineTo(p.x + (r/2.2) * Math.cos((54+i*72)/180*Math.PI), p.y - (r/2.2) * Math.sin((54+i*72)/180*Math.PI));
+                }
+            } else if (s === 'heart') {
+                ctx.moveTo(p.x, p.y + r*0.8);
+                ctx.bezierCurveTo(p.x-r*1.5, p.y-r*0.8, p.x-r*0.5, p.y-r*1.8, p.x, p.y-r*0.6);
+                ctx.bezierCurveTo(p.x+r*0.5, p.y-r*1.8, p.x+r*1.5, p.y-r*0.8, p.x, p.y+r*0.8);
+            } else if (s === 'club') {
+                ctx.arc(p.x, p.y-r*0.5, r*0.5, 0, Math.PI*2);
+                ctx.arc(p.x-r*0.5, p.y+r*0.2, r*0.5, 0, Math.PI*2);
+                ctx.arc(p.x+r*0.5, p.y+r*0.2, r*0.5, 0, Math.PI*2);
+                ctx.moveTo(p.x, p.y); ctx.lineTo(p.x-r*0.2, p.y+r*0.8); ctx.lineTo(p.x+r*0.2, p.y+r*0.8);
+            } else if (s === 'square') {
+                ctx.rect(p.x - r*0.7, p.y - r*0.7, r*1.4, r*1.4);
+            } else if (s === 'spade') {
+                ctx.moveTo(p.x, p.y-r);
+                ctx.bezierCurveTo(p.x+r*1.4, p.y+r*0.4, p.x+r*0.4, p.y+r*1.2, p.x, p.y+r*0.4);
+                ctx.bezierCurveTo(p.x-r*0.4, p.y+r*1.2, p.x-r*1.4, p.y+r*0.4, p.x, p.y-r);
+                ctx.moveTo(p.x, p.y+r*0.2); ctx.lineTo(p.x-r*0.2, p.y+r*0.8); ctx.lineTo(p.x+r*0.2, p.y+r*0.8);
+            } else {
+                ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            }
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+    });
+
+    // 3. 地図初期化
+    const map = L.map('map', { 
+        center: [26.212600663693596, 127.68061259357493], zoom: 15, preferCanvas: true, zoomControl: false 
+    });
+
+    // ★↓↓ ここに追加 ↓↓
+
+    function updateZoomIndicator() {
+        const zoom = map.getZoom();
+        document.getElementById('zoom-indicator').innerText = `Zoom: ${zoom}`;
+    }
+
+    // 初期表示時に1回実行
+    updateZoomIndicator();
+
+    // ズーム変更時に更新
+    map.on('zoomend', updateZoomIndicator);
+
+    // ★↑↑ ここまで追加 ↑↑    
+
+
+    
+    
+    map.on('click', () => {
+      closeControlsPanel();
+    });
+    
+    const baseLayers = {
+      "標準": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 21, maxNativeZoom: 19 }),
+      "国土地理院地図": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', { maxZoom: 21, maxNativeZoom: 18 }),
+      "航空写真": L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', { maxZoom: 21, maxNativeZoom: 18 })
+    };
+    baseLayers["標準"].addTo(map);
+      const creditText = {
+      "標準": "© OpenStreetMap",
+      "航空写真": "© 国土地理院（航空写真）",
+      "国土地理院地図": "© 国土地理院"
+    };
+
+    const layerGroups = {};
+
+// =====================================================
+// 📍 住所／緯度経度ジャンプ機能（既存構造完全維持型）
+// =====================================================
+    let inputMarker = null;
+
+    function jumpToLocation() {
+
+        const input = prompt(
+            "住所 施設または 緯度,経度 を入力してください\\n例:\\n品川区 〇〇区役所\\n35.6094, 139.7303"
+        );
+
+        if (!input) return;
+
+        // 既存マーカー削除
+        if (inputMarker) {
+            map.removeLayer(inputMarker);
+            inputMarker = null;
+        }
+
+        // 緯度経度形式
+        if (input.includes(",")) {
+
+            const parts = input.split(",");
+            const lat = parseFloat(parts[0]);
+            const lng = parseFloat(parts[1]);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                alert("緯度経度の形式が正しくありません");
+                return;
+            }
+
+            map.setView([lat, lng], 16);
+
+            inputMarker = L.marker([lat, lng]).addTo(map)
+                .bindPopup(input)
+                .openPopup();
+
+        } else {
+
+            fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`
+            )
+            .then(res => res.json())
+            .then(data => {
+
+                if (!data || data.length === 0) {
+                    alert("住所が見つかりません");
+                    return;
+                }
+
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+
+                map.setView([lat, lng], 16);
+
+                inputMarker = L.marker([lat, lng]).addTo(map)
+                    .bindPopup(input)
+                    .openPopup();
+            })
+            .catch(() => {
+                alert("検索エラーが発生しました");
+            });
+        }
+    }    
+
+    // 4. データ読み込み関数群
+    function loadChome(idx) {
+      fetch(`geo_0_町丁目境界${idx}.geojson`)
+        .then(res => res.json())
+        .then(data => {
+
+          layerGroups[`町丁目境界${idx}`] = L.geoJSON(data, {
+            renderer: myRenderer,
+
+            style: {
+              color: "red",
+              weight: 1,
+              fillOpacity: 0.03   // ★ 0にしない（スマホ対策）
+            },
+
+            onEachFeature: (f, l) => {
+
+              const content =
+                `<strong>${f.properties["町丁目名"]}</strong><br>` +
+                `人口：${f.properties["JINKO"] ?? "不明"}`;
+
+              const isTouch = 'ontouchstart' in window;
+
+              // ===== PC：マウスオーバー =====
+              if (!isTouch) {
+                l.bindTooltip(content, {
+                  sticky: true,
+                  opacity: 0.9,
+                  direction: "auto"
+                });
+              }
+
+              // ===== スマホ：タップ =====
+              l.bindPopup(content);
+
+              // ===== 視覚フィードバック =====
+              l.on({
+                mouseover: e => {
+                  e.target.setStyle({
+                    weight: 3,
+                    color: "#ff0000",
+                    fillOpacity: 0.15
+                  });
+                },
+
+                mouseout: e => {
+                  e.target.setStyle({
+                    weight: 1,
+                    color: "red",
+                    fillOpacity: 0.03
+                  });
+                },
+
+              });
+            }
+          });
+
+        })
+        .catch(err => console.error(err));
+    }
+"""
+
+# 施設データ読み込みJSコードの生成
+facility_js = ""
+for file_name, color_jp, label in geojson_files:
+    facility_js += f"""
+    fetch("{file_name}").then(res => res.json()).then(data => {{
+        layerGroups["{label}"] = L.geoJSON(data, {{
+            pointToLayer: (f, latlng) => new L.CustomMarker(latlng, {{
+                renderer: myRenderer,
+                radius: 12,
+                shape: shapeMap["{label}"] || "circle",
+                fillColor: colorMap["{color_jp}"] || "brown",
+                color: "#fff",
+                weight: 1.5,
+                fillOpacity: 0.8
+            }}).bindPopup(
+                `<strong>${{f.properties["内容"] || "-"}}</strong><br>
+                 ${{f.properties["url2"] ? `<a href='${{f.properties["url2"]}}' target='_blank'>ホームページ</a>` : ""}}
+                 ${{f.properties["url"] ? ` | <a href='${{f.properties["url"]}}' target='_blank'>医療・介護ネット</a>` : ""}}`,
+                {{ maxWidth: 260 }}  // ★ ここで横幅制限
+            ),
+            onEachFeature: (f, l) => {{
+                // タップ時に検索パネルを閉じる処理もここに追加可能
+                l.on('click', () => {{
+                    // PCでは閉じない、スマホなら閉じる
+                    if('ontouchstart' in window) {{
+                        document.getElementById('search-panel').style.display = 'none';
+                        document.getElementById('search-input').blur();
+                    }}
+                }});
+            }}
+        }});
+    }}).catch(e => {{}});
+    """
+
+html_footer = """
+    // 初期読み込み実行
+    for(let i=1; i<=5; i++) { loadChome(i.toString().padStart(2, '0')); }
+
+    document.querySelectorAll('.layer-toggle').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const g = layerGroups[this.value];
+            if (!g) return;
+            if (this.checked) {
+                g.addTo(map);
+                
+                // ★ ズーム変更でズレた座標を、現在の地図に合わせて強制計算し直す
+                setTimeout(() => {
+                    if (g.eachLayer) {
+                        g.eachLayer(layer => {
+                            // マーカー（病院など）の場合：座標を上書きして再描画を促す
+                            if (layer.getLatLng && layer.setLatLng) {
+                                layer.setLatLng(layer.getLatLng());
+                            } 
+                            // 境界線（町丁目など）の場合：スタイルを更新して再描画を促す
+                            else if (layer.setStyle) {
+                                layer.setStyle({});
+                            }
+                        });
+                    }
+                    // キャンバス全体のリフレッシュ
+                    if (myRenderer) myRenderer.redraw();
+                }, 10); 
+            } else {
+                map.removeLayer(g);
+            }
+        });
+    });
+
+    // 検索機能
+    document.getElementById('search-input').oninput = function(e) {
+        const val = e.target.value.toLowerCase().trim();
+        const resDiv = document.getElementById('search-results');
+        resDiv.innerHTML = '';
+        if(!val) return;
+        const keywords = val.split(/[\\s　]+/);
+        for (let label in layerGroups) {
+            if (label.includes("町丁目境界") || !layerGroups[label]) continue;
+            layerGroups[label].eachLayer(l => {
+                const name = (l.feature.properties["内容"] || "").toLowerCase();
+                if(keywords.every(kw => name.includes(kw))) {
+                    const item = document.createElement('div');
+                    item.className = "search-item";
+                    item.style = "padding:8px; border-bottom:1px solid #eee; font-size:13px;";
+                    item.innerText = l.feature.properties["内容"];
+                    item.onclick = () => {
+
+                        const layer = layerGroups[label];
+
+                          // ② 検索パネルを閉じる
+                          const searchPanel = document.getElementById('search-panel');
+                          searchPanel.style.display = 'none';
+
+                          // ③ 検索入力をクリアは今回は中止します
+                          const searchInput = document.getElementById('search-input');
+                          // 検索結果のクリア中止const searchResults = document.getElementById('search-results');
+                          // 検索文字のクリア中止searchInput.value = '';
+                          // 検索の中止searchResults.innerHTML = '';
+
+                          // ★ そのマーカーだけ表示
+                          if (!map.hasLayer(l)) {
+                              l.addTo(map);
+                          }
+
+                          // ④ ★ ソフトキーボードを確実に閉じる（超重要）
+                          searchInput.blur();
+                                                
+                          // ⑤ ズームしない＆移動
+                          map.panTo(l.getLatLng(), {
+                              animate: true
+                          });
+
+                          // ⑥ 描画完了後に popup を開く（スマホ安定）
+                          setTimeout(() => {
+                              l.openPopup();
+                          }, 250);
+                      };
+                    resDiv.appendChild(item);
+                }
+            });
+        }
+    };
+
+    function togglePanel(id) {
+        const p = document.getElementById(id);
+        const isVisible = p.style.display === 'block';
+        ['controls', 'search-panel', 'info-panel'].forEach(i => document.getElementById(i).style.display = 'none');
+        if(!isVisible) p.style.display = 'block';
+    }
+
+    document.getElementById('selectAllBtn').onclick = () => {
+        document.querySelectorAll('.layer-toggle').forEach(cb => { cb.checked = true; cb.dispatchEvent(new Event('change')); });
+    };
+    document.getElementById('deselectAllBtn').onclick = () => {
+        document.querySelectorAll('.layer-toggle').forEach(cb => { cb.checked = false; cb.dispatchEvent(new Event('change')); });
+    };
+
+    document.querySelectorAll('input[name="baseLayer"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+
+        // ベースレイヤー切替
+        for (let key in baseLayers) {
+          map.removeLayer(baseLayers[key]);
+        }
+        baseLayers[this.value].addTo(map);
+
+        // ★ クレジット表示切替
+        const credit = creditText[this.value] || "";
+        document.getElementById("credit-title").innerText = credit;
+      });
+    });
+
+    function closeControlsPanel() {
+      const controls = document.getElementById('controls');
+      if (controls && controls.style.display === 'block') {
+        controls.style.display = 'none';
+      }
+    }
+
+  </script>
+</body>
+</html>
+"""
+
+# 全パーツを結合して書き出し
+with open("medical_map47沖縄県.html", "w", encoding="utf-8") as f:
+    f.write(html_head + html_checkboxes + html_body + facility_js + html_footer)
+
+print("✅ medical_map_complete.html を出力しました。")
