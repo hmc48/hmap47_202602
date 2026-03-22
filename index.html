@@ -300,29 +300,106 @@ button.menu-sub-btn { flex: 1; padding: 8px; font-size: 11px; cursor: pointer; }
 
         } else {
 
-            fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input)}`
-            )
-            .then(res => res.json())
-            .then(data => {
+        fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&countrycodes=jp&limit=30&accept-language=ja&q=${encodeURIComponent(input)}`
+        )
+        .then(res => res.json())
+        .then(data => {
 
-                if (!data || data.length === 0) {
-                    alert("住所が見つかりません");
-                    return;
-                }
+            if (!data || data.length === 0) {
+                alert("住所が見つかりません");
+                return;
+            }
 
-                const lat = parseFloat(data[0].lat);
-                const lng = parseFloat(data[0].lon);
+            // ▼ 候補表示ボックス
+            const resultsDiv = document.createElement("div");
+            resultsDiv.style.position = "fixed";
+            resultsDiv.style.top = "50%";
+            resultsDiv.style.left = "50%";
+            resultsDiv.style.transform = "translate(-50%, -50%)";
+            resultsDiv.style.background = "white";
+            resultsDiv.style.padding = "15px";
+            resultsDiv.style.paddingTop = "35px";   // ★ 重要：×ボタン分の余白
+            resultsDiv.style.zIndex = "5000";
+            resultsDiv.style.maxHeight = "300px";
+            resultsDiv.style.overflowY = "auto";
+            resultsDiv.style.border = "1px solid #ccc";
+            resultsDiv.style.borderRadius = "8px";  // ★ 見た目改善
 
-                map.setView([lat, lng], 16);
+            // =========================
+            // ★ 右上の × ボタン
+            // =========================
+            const closeX = document.createElement("div");
+            closeX.innerText = "×";
+            closeX.style.position = "absolute";
+            closeX.style.top = "5px";
+            closeX.style.right = "10px";
+            closeX.style.cursor = "pointer";
+            closeX.style.fontSize = "22px";
+            closeX.style.fontWeight = "bold";
 
-                inputMarker = L.marker([lat, lng]).addTo(map)
-                    .bindPopup(input)
-                    .openPopup();
-            })
-            .catch(() => {
-                alert("検索エラーが発生しました");
+            // 見やすく（おすすめ）
+            closeX.style.background = "white";
+            closeX.style.padding = "2px 8px";
+            closeX.style.borderRadius = "4px";
+            closeX.style.boxShadow = "0 1px 3px rgba(0,0,0,0.3)";
+
+            closeX.onclick = () => {
+                document.body.removeChild(resultsDiv);
+            };
+
+            resultsDiv.appendChild(closeX);
+
+            // =========================
+            // ★ 候補リスト
+            // =========================
+            data.forEach(place => {
+
+                const item = document.createElement("div");
+                item.style.padding = "8px";
+                item.style.borderBottom = "1px solid #eee";
+                item.style.cursor = "pointer";
+
+                item.innerText = place.display_name;
+
+                item.onclick = () => {
+
+                    const lat = parseFloat(place.lat);
+                    const lng = parseFloat(place.lon);
+
+                    map.setView([lat, lng], 16);
+
+                    inputMarker = L.marker([lat, lng]).addTo(map)
+                        .bindPopup(place.display_name)
+                        .openPopup();
+
+                    document.body.removeChild(resultsDiv);
+                };
+
+                resultsDiv.appendChild(item);
             });
+
+            // =========================
+            // ★ 下の「閉じる」ボタン（既存維持）
+            // =========================
+            const closeBtn = document.createElement("div");
+            closeBtn.innerText = "閉じる";
+            closeBtn.style.marginTop = "10px";
+            closeBtn.style.textAlign = "center";
+            closeBtn.style.cursor = "pointer";
+
+            closeBtn.onclick = () => {
+                document.body.removeChild(resultsDiv);
+            };
+
+            resultsDiv.appendChild(closeBtn);
+
+            document.body.appendChild(resultsDiv);
+        })
+        .catch(() => {
+            alert("検索エラーが発生しました");
+        });
+        
         }
     }    
 
